@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GM • Sprint Dashboard</title>
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Libs globales -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Top Nav (horizontal) -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" style="color:#351c64;" href="#">Sprint Panel</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <button class="btn btn-light me-2 active"  style="color:#421f82;" data-view="view-dashboard">Dashboard</button>
+          </li>
+          <li class="nav-item">
+            <button class="btn btn-outline-light me-2" style="color:#421f82;"  data-view="view-subtareas">Subtareas</button>
+          </li>
+          <li class="nav-item">
+            <button class="btn btn-outline-light me-2"  style="color:#421f82;"  data-view="view-admin">Administrador</button>
+          </li>
+        
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div id="alert" class="alert alert-danger d-none mx-auto" style="max-width:1200px;" role="alert"></div>
+  <main class="container">
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+          <h1 id="sprintTitle" class="display-6" style="color:#6f42c1;">Sprint actual</h1>
+          <div id="sprintDates" class="text-muted">—</div>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="badge p-3">
+            <div class="small fw-bold" style="color:#6f42c1;">DÍAS RESTANTES</div>
+            <div id="daysLeft" style="color:#6f42c1;" class="fs-3">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-lg-12 mb-3">
+          <div class="card text-center border-0 shadow rounded-4 bg-light">
+            <div class="card-body">
+              
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="flex-fill">
+                  <div class="display-5 fw-bold " style="color:#6f42c1;" id="kpiPctSprint">—%</div>
+                  <div class="small text-muted">Avance</div>
+                </div>
+                <div class="vr mx-3"></div>
+                <div class="flex-fill">
+                  <div class="display-5 fw-bold "  style="color:#6f42c1;" id="kpiHorasSubtarea">—</div>
+                  <div class="small text-muted">Hrs sub</div>
+                </div>
+                <div class="vr mx-3"></div>
+                <div class="flex-fill">
+                  <div class="display-5 fw-bold " style="color:#6f42c1;" id="kpiHorasTerminadas">—</div>
+                  <div class="small text-muted">Terminadas</div>
+                </div>
+                <div class="vr mx-3"></div>
+                <div class="flex-fill">
+                  <div class="display-5 fw-bold " style="color:#6f42c1;" id="kpiTotalPendientes">—</div>
+                  <div class="small text-muted">Pendientes</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-12 mb-3">
+          <div class="card border-0 shadow rounded-4 bg-light">
+            <div class="card-body">
+              <h4 class="card-title mb-4 fw-bold " style="color:#6f42c1;" >Burndown</h4>
+              <div style="height: 500px;">
+                <canvas id="burndownCanvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow rounded-4 bg-light">
+            <div class="card-header fw-bold " style="color:#6f42c1;">Avance por lista</div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="tblLista" class="table table-striped table-bordered">
+                  <thead id="theadLista"></thead>
+                  <tbody id="tbodyLista"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-8 mb-3">
+          <div class="card border-0 shadow rounded-4 bg-light">
+            <div class="card-header fw-bold " style="color:#6f42c1;">Totales por propietario</div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="tblProp" class="table table-striped table-bordered">
+                  <thead id="theadProp"></thead>
+                  <tbody id="tbodyProp"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+ 
+  <div class="card-body">
+    <div id="resumenPendientes"></div>
+  </div>
+
+      </div>
+    </section>
+
+    <!-- SUBTAREAS -->
+    <section id="view-subtareas" class="view" style="display:none;">
+      <div class="card border-0 shadow rounded-4 bg-light mb-4">
+        <div class="card-header fw-bold " style="color:#6f42c1;">Subtareas</div>
+        <div class="card-body">
+          <input type="search" id="subSearch" class="form-control mb-2" placeholder="Buscar subtarea / propietario…"/>
+          <div class="table-responsive">
+            <table id="tblSubSel" class="table table-striped table-bordered">
+              <thead id="theadSubSel"></thead>
+              <tbody id="tbodySubSel"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="view-admin" class="view" style="display:none;">
+      <div class="card border-0 shadow rounded-4 bg-light mb-4">
+        <div class="card-header fw-bold " style="color:#6f42c1;">Nuevo sprint</div>
+        <div class="card-body">
+          <form id="frmSprint" class="row g-3">
+            <div class="col-md-6">
+              <label for="spNombre" class="form-label">Nombre</label>
+              <input type="text" id="spNombre" class="form-control" required placeholder="Sprint X"/>
+            </div>
+            <div class="col-md-3">
+              <label for="spInicio" class="form-label">Fecha inicio</label>
+              <input type="date" id="spInicio" class="form-control" required/>
+            </div>
+            <div class="col-md-3">
+              <label for="spFin" class="form-label">Fecha fin</label>
+              <input type="date" id="spFin" class="form-control" required/>
+            </div>
+            <div class="col-md-3">
+              <label for="spTotalHrs" class="form-label">Total de horas</label>
+              <input type="number" id="spTotalHrs" class="form-control" min="0" step="0.5" required placeholder="Ej. 120"/>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-danger" id="btnGuardarSprint" type="submit">Guardar sprint</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow rounded-4 bg-light mb-4">
+        <div class="card-header fw-bold " style="color:#6f42c1;">Cargas CSV</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Subtareas → SUBTAREASACTUAL</label>
+            <input type="file" id="csvSubtareas" class="form-control" accept=".csv"/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Historias → HISTORIASACTUAL</label>
+            <input type="file" id="csvHistorias" class="form-control" accept=".csv"/>
+          </div>
+          <div class="mb-3">
+            <button class="btn btn-primary me-2" id="btnCargarSubtareas" type="button">Cargar solo Subtareas</button>
+            <button class="btn btn-primary me-2" id="btnCargarHistorias" type="button">Cargar solo Historias</button>
+            <button class="btn btn-outline-secondary me-2" id="btnSincronizar" type="button">Sincronizar (sin cargar)</button>
+            <button class="btn btn-success" id="btnCargarTodo" type="button">Cargar ambos y sincronizar</button>
+          </div>
+          <div id="uploadMsg" class="form-text"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Loader -->
+    <div id="loading" class="text-center my-4" style="display:none;">
+      <div class="spinner-border " style="color:#6f42c1;" role="status">
+        <span class="visually-hidden">Cargando…</span>
+      </div>
+      <div>Cargando…</div>
+    </div>
+  </main>
+
+  <!-- Bootstrap JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Mostrar/Ocultar vistas con los botones del menú -->
+  <script>
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Quitar clase active de todos los botones
+        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active', 'btn-primary'));
+        // Poner clase active y btn-primary al botón actual
+        this.classList.add('active', 'btn-primary');
+        // Ocultar todas las secciones
+        document.querySelectorAll('section.view').forEach(sec => sec.style.display = 'none');
+        // Mostrar la sección seleccionada
+        document.getElementById(this.getAttribute('data-view')).style.display = '';
+      });
+    });
+  </script>
+  <!-- Tu JS -->
+  <script>
+    const ver = Date.now();
+    document.write(`
+      <script src="js/config.js?v=${ver}"><\/script>
+      <script src="js/common.js?v=${ver}"><\/script>
+      <script src="js/dashboard.js?v=${ver}"><\/script>
+      <script src="js/subtareas.js?v=${ver}"><\/script>
+      <script src="js/admin.js?v=${ver}"><\/script>
+      <script src="js/burndown.js?v=${ver}"><\/script>
+    `);
+  </script>
+</body>
+</html>

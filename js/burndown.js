@@ -39,9 +39,18 @@
       if (error) { console.error('burndown_dataset:', error); return; }
       if (!Array.isArray(serie)) return;
 
+
+   
+
+
+
       const labels = serie.map(r => toDM(r.dia));
       const ideal  = serie.map(r => (r?.horas_restantes_ideal ?? null));
-      const real   = serie.map(r => (r?.horas_restantes_real  ?? null)); // NULL → corte en fechas futuras
+      const real = serie.map(r => {
+  const val = Number(r?.horas_restantes_real);
+  // Si es null, undefined, NaN o 0, regresa null (no se pinta)
+  return (!val || isNaN(val)) ? null : val;
+});
 
       // Destruir cualquier chart previo para este canvas
       const canvas = document.getElementById('burndownCanvas');

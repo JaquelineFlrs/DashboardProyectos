@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Proyectos</title>
+  <link rel="icon" type="image/png" href="assets/love.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { bg:'#0B0820', glass:'rgba(255,255,255,0.08)', borderg:'rgba(255,255,255,0.15)',
+                  primary:'#7C3AED', primary2:'#A78BFA', accent:'#22D3EE', success:'#22c55e', danger:'#f43f5e' },
+        boxShadow: { glass:'0 10px 30px rgba(0,0,0,.35)' },
+        fontFamily: { sans:["Inter","ui-sans-serif","system-ui"] }
+      }}
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendors -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <!-- ✅ SweetAlert2 for Swal -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body{background:radial-gradient(1200px 900px at 80% -10%, #8B5CF6, transparent 40%),
+                   radial-gradient(900px 700px at 10% 10%, #22D3EE, transparent 45%),
+                   linear-gradient(180deg, #0B0820, #0B0820 60%)}
+    .card{border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.08); backdrop-filter: blur(18px); box-shadow:0 10px 30px rgba(0,0,0,.35); border-radius:24px;}
+    .btn-grad{background-image:linear-gradient(90deg, #7C3AED, #A78BFA);}
+    .file-wrap{display:flex; align-items:center; gap:.75rem;}
+    .file-btn{cursor:pointer; padding:.5rem 1rem; border-radius:12px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(90deg,#7C3AED,#A78BFA); color:white; font-weight:600;}
+    .file-name{font-size:.875rem; color:rgba(255,255,255,.8)}
+    input[type=file]{display:none;}
+    input[type=checkbox]{ width: 18px; height: 18px; accent-color:#7C3AED; }
+    th.sortable{cursor:pointer; user-select:none;}
+    th.sortable:hover{color:#fff;}
+    .icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);display:grid;place-items:center}
+    .icon-btn:hover{background:rgba(255,255,255,.12)}
+    .heart{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);display:grid;place-items:center}
+    .heart img{width:22px;height:22px;filter: drop-shadow(0 2px 6px rgba(124,58,237,.6));}
+    .beat{animation: beat 500ms ease-in-out 1;}
+    @keyframes beat{ 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+    /* Styles for selects and options */
+    select, select option {
+      background-color: #18181b !important;
+      color: #fff !important;
+    }
+    select:focus {
+      outline: 2px solid #7C3AED;
+    }
+    select option {
+      background-color: #18181b;
+      color: #fff;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white/90 font-sans">
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-black/30 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="heart-main" class="heart"><img src="assets/love.png" alt="♥"></div>
+        <h1 class="text-lg font-semibold">Dashboard Proyectos</h1>
+      </div>
+      <nav class="flex gap-2">
+        <button data-tab="dash" class="tab px-4 py-2 rounded-xl border border-white/15 bg-white/10">Dashboard</button>
+        <button data-tab="admin" class="tab px-4 py-2 rounded-xl border border-white/15 bg-white/5">Administrador</button>
+        <button data-tab="config" class="tab px-4 py-2 rounded-xl border border-white/15 bg-white/5">Configuración</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 grid gap-8">
+    <!-- DASHBOARD -->
+    <section id="panel-dash" class="grid gap-8">
+      <!-- Header Sprint + KPIs -->
+      <div class="card p-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <div class="text-sm text-white/60">Sprint</div>
+            <div id="sp-nombre" class="text-2xl font-bold">—</div>
+            <div id="sp-fechas" class="text-sm text-white/70 mt-1">—</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-sm">Días hábiles restantes: <span id="sp-dias">—</span></div>
+          </div>
+        </div>
+        <!-- KPIs fila completa -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+          <div class="card p-4">
+            <div class="text-xs text-white/60">% Avance</div>
+            <div id="k-avance" class="text-xl font-semibold">—%</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-white/60">Horas Sprint (actual)</div>
+            <div id="k-hrs-plan" class="text-xl font-semibold">—</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-white/60">Horas Terminadas</div>
+            <div id="k-hrs-term" class="text-xl font-semibold">—</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-white/60">Horas Pendientes</div>
+            <div id="k-hrs-pend" class="text-xl font-semibold">—</div>
+          </div>
+          <div class="card p-4">
+            <div class="text-xs text-white/60">Alcance: Inicio vs Actual</div>
+            <div class="mt-1 text-sm">
+              Inicio: <b id="k-hrs-inicio">—</b> h · Actual: <b id="k-hrs-actual">—</b> h
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Burndown ancho completo -->
+      <div class="card p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-semibold">Burndown</h3>
+          <button id="btn-burndown" class="icon-btn" title="Recalcular burndown" aria-label="Recalcular burndown">
+            <!-- reload icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-white/80">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M4.5 12a7.5 7.5 0 0112.69-5.303M19.5 12a7.5 7.5 0 01-12.69 5.303M3 3v6h6" />
+            </svg>
+          </button>
+        </div>
+        <canvas id="chart-burn" class="mt-4" style="height:360px;max-height:360px"></canvas>
+      </div>
+
+      <!-- Listas de tareas -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-4">Avance por "Nombre de la lista de tareas"</h3>
+        <div class="overflow-auto">
+          <table class="min-w-full text-sm">
+            <thead class="text-white/70">
+              <tr>
+                <th class="text-left py-2 pr-4">Lista</th>
+                <th class="text-right py-2 px-4">Total (h)</th>
+                <th class="text-right py-2 px-4">Terminadas (h)</th>
+                <th class="text-right py-2 px-4">Pendientes (h)</th>
+                <th class="text-right py-2 pl-4">% Avance</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-listas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Personas -->
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-6" id="cards-personas"></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="panel-admin" class="hidden grid gap-6">
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">Administrador de subtareas</h3>
+          <div class="flex items-center gap-3">
+            <input id="busca" placeholder="Buscar..." class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+            <select id="filter-terminado" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15">
+              <option value="">Terminado: Todos</option>
+              <option value="1">Terminado: Sí</option>
+              <option value="0">Terminado: No</option>
+            </select>
+            <select id="filter-ocultar" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15">
+              <option value="">Ocultar: Todos</option>
+              <option value="1">Ocultar: Sí</option>
+              <option value="0">Ocultar: No</option>
+            </select>
+            <select id="page-size" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-auto">
+          <table class="min-w-full text-sm">
+            <thead class="text-white/70">
+              <tr>
+                <th class="text-left py-2 pr-4 sortable" data-k="nombre_hu">Historia</th>
+                <th class="text-left py-2 pr-4 sortable" data-k="propietario">Propietario</th>
+                <th class="text-left py-2 pr-4 sortable" data-k="estado">Estado</th>
+                <th class="text-right py-2 px-4 sortable" data-k="duracion_horas">Duración (h)</th>
+                <th class="text-center py-2 px-4">Terminado</th>
+                <th class="text-center py-2 px-4">Ocultar</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-admin"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between mt-4">
+          <div class="text-sm text-white/60" id="pg-info">—</div>
+          <div class="flex gap-2">
+            <button id="pg-prev" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15">Prev</button>
+            <button id="pg-next" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla Burndown editable -->
+      <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">Burndown (editar Real)</h3>
+        </div>
+        <div class="overflow-auto">
+          <table class="min-w-full text-sm">
+            <thead class="text-white/70">
+              <tr>
+                <th class="text-left py-2 pr-4">Día</th>
+                <th class="text-left py-2 pr-4">Fecha</th>
+                <th class="text-right py-2 px-4">Real</th>
+                <th class="text-right py-2 px-4">Estimado</th>
+                <th class="text-right py-2 px-4">Guardar</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-burn-admin"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="panel-config" class="hidden grid gap-6">
+      <div class="card p-6 grid gap-4">
+        <h3 class="font-semibold">Crear sprint</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <input id="cf-nombre" placeholder="Nombre del sprint" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+          <input id="cf-inicio" type="date" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+          <input id="cf-fin" type="date" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+          <input id="cf-num" type="number" min="0" placeholder="# personas" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+          <input id="cf-hrsper" type="number" min="0" placeholder="Horas por persona" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+          <input id="cf-hrssprint" type="number" min="0" placeholder="Horas del sprint (plan)" class="px-3 py-2 rounded-xl bg-white/10 border border-white/15" />
+        </div>
+        <button id="btn-crear" class="self-start px-4 py-2 rounded-xl btn-grad text-white font-semibold">Crear sprint (borra todo)</button>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card p-6 grid gap-4">
+          <h3 class="font-semibold">Cargar Historias</h3>
+          <div class="file-wrap">
+            <label for="file-historias" class="file-btn">Elegir historias.csv</label>
+            <span id="file-historias-name" class="file-name">No se eligió archivo</span>
+            <input id="file-historias" type="file" accept=".csv" />
+          </div>
+          <button id="btn-carga-historias" class="self-start px-3 py-1 text-sm rounded-lg btn-grad text-white font-semibold">Subir Historias</button>
+        </div>
+        <div class="card p-6 grid gap-4">
+          <h3 class="font-semibold">Cargar Subtareas</h3>
+          <div class="file-wrap">
+            <label for="file-subtareas" class="file-btn">Elegir subtareas.csv</label>
+            <span id="file-subtareas-name" class="file-name">No se eligió archivo</span>
+            <input id="file-subtareas" type="file" accept=".csv" />
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-carga-subtareas" class="px-3 py-1 text-sm rounded-lg btn-grad text-white font-semibold">Subir Subtareas</button>
+            <button id="btn-run-burndown" class="icon-btn" title="Recalcular burndown" aria-label="Recalcular burndown">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-white/80">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M4.5 12a7.5 7.5 0 0112.69-5.303M19.5 12a7.5 7.5 0 01-12.69 5.303M3 3v6h6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

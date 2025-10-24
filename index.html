@@ -59,6 +59,48 @@
       background-color: #18181b;
       color: #fff;
     }
+
+    /* Nuevos estilos: overlay no-fullscreen para Burndown */
+    .burn-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.45);
+      backdrop-filter: blur(4px);
+      z-index:50;
+    }
+    .main-blurred{
+      filter: blur(6px) brightness(.8);
+      pointer-events: none; /* evita interacción con el fondo */
+      user-select: none;
+    }
+    .card.expanded-burn{
+      position:fixed;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      width:90vw;
+      max-width:1400px;
+      height:80vh;
+      z-index:60;
+      border-radius:16px;
+      padding:20px;
+      overflow:auto;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    }
+    .burn-close{
+      position:absolute;
+      top:12px;
+      right:12px;
+      z-index:70;
+      width:40px;
+      height:40px;
+      display:grid;
+      place-items:center;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      cursor:pointer;
+    }
   </style>
 </head>
 <body class="min-h-screen text-white/90 font-sans">
@@ -289,36 +331,67 @@
       const btnFull = document.getElementById('btn-burndown-full');
       const card = document.getElementById('card-burndown');
       const canvas = document.getElementById('chart-burn');
+      const main = document.querySelector('main');
 
-      if (!btnFull || !card || !canvas) return;
+      if (!btnFull || !card || !canvas || !main) return;
 
-      btnFull.addEventListener('click', async () => {
-        try {
-          if (!document.fullscreenElement) {
-            await card.requestFullscreen();
-          } else {
-            await document.exitFullscreen();
-          }
-        } catch (err) {
-          if (window.Swal) {
-            Swal.fire('Error', 'No se pudo cambiar a pantalla completa: ' + (err.message || err), 'error');
-          } else {
-            console.error('Error fullscreen:', err);
-          }
-        }
-      });
+      let expanded = false;
+      let backdrop = null;
+      let closeBtn = null;
 
-      // Ajusta tamaño del canvas y fuerza redibujado del Chart.js al entrar/salir de fullscreen
-      document.addEventListener('fullscreenchange', () => {
-        // si usas Chart.js 3+ puedes obtener la instancia con Chart.getChart(canvasId)
-        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;
+      function openExpand(){
+        if (expanded) return;
+        expanded = true;
 
-        if (document.fullscreenElement) {
-          // reservar espacio vertical (resta header y controles)
-          canvas.style.height = 'calc(100vh - 120px)';
-        } else {
-          canvas.style.height = '';
-        }
+        // crear backdrop
+        backdrop = document.createElement('div');
+        backdrop.id = 'burn-backdrop';
+        backdrop.className = 'burn-backdrop';
+        document.body.appendChild(backdrop);
+
+        // aplicar blur al resto y elevar la card
+        main.classList.add('main-blurred');
+        card.classList.add('expanded-burn');
+
+        // agregar botón de cierre dentro de la card
+        closeBtn = document.createElement('button');
+        closeBtn.className = 'burn-close';
+        closeBtn.title = 'Cerrar';
+        closeBtn.innerHTML = '✕';
+        closeBtn.addEventListener('click', closeExpand);
+        card.appendChild(closeBtn);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          else if (chart && typeof chart.update === 'function'          if (chart && typeof chart.resize === 'function') chart.resize();        setTimeout(() => {        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;        canvas.style.height = '';        card.classList.remove('expanded-burn');        main.classList.remove('main-blurred');        if (closeBtn){ closeBtn.remove(); closeBtn = null; }        if (backdrop){ backdrop.remove(); backdrop = null; }        expanded = false;        if (!expanded) return;      function closeExpand(){      }        document.addEventListener('keydown', escHandler);        backdrop.addEventListener('click', closeExpand);        // cerrar al click en backdrop o ESC        }, 100);          else if (chart && typeof chart.update === 'function') chart.update();          if (chart && typeof chart.resize === 'function') chart.resize();        setTimeout(() => {        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;        // forzar redibujado del chart        canvas.style.height = 'calc(80vh - 120px)';        // ajustar canvas para ocupar más vertical        }
 
         // forzar redimensionado del gráfico si existe
         if (chart && typeof chart.resize === 'function') {

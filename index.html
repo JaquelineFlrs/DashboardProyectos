@@ -325,19 +325,22 @@
 
   <script src="assets/js/app.js"></script>
 
-  <!-- Script añadido: control de pantalla completa para el Burndown -->
+  <!-- Script añadido: control de overlay para el Burndown (abrir/ cerrar, desenfocar fondo) -->
   <script>
     (function(){
-      const btnFull = document.getElementById('btn-burndown-full');
+      const btn = document.getElementById('btn-burndown-full');
       const card = document.getElementById('card-burndown');
       const canvas = document.getElementById('chart-burn');
       const main = document.querySelector('main');
-
-      if (!btnFull || !card || !canvas || !main) return;
+      if (!btn || !card || !canvas || !main) return;
 
       let expanded = false;
       let backdrop = null;
       let closeBtn = null;
+
+      function getChart(){
+        return window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;
+      }
 
       function openExpand(){
         if (expanded) return;
@@ -345,15 +348,14 @@
 
         // crear backdrop
         backdrop = document.createElement('div');
-        backdrop.id = 'burn-backdrop';
         backdrop.className = 'burn-backdrop';
         document.body.appendChild(backdrop);
 
-        // aplicar blur al resto y elevar la card
+        // desenfocar y elevar card
         main.classList.add('main-blurred');
         card.classList.add('expanded-burn');
 
-        // agregar botón de cierre dentro de la card
+        // botón de cierre
         closeBtn = document.createElement('button');
         closeBtn.className = 'burn-close';
         closeBtn.title = 'Cerrar';
@@ -361,45 +363,47 @@
         closeBtn.addEventListener('click', closeExpand);
         card.appendChild(closeBtn);
 
+        // ajustar canvas para ocupar más vertical
+        canvas.style.height = 'calc(80vh - 120px)';
 
+        // forzar redibujado del chart
+        setTimeout(() => {
+          const chart = getChart();
+          if (chart && typeof chart.resize === 'function') chart.resize();
+          else if (chart && typeof chart.update === 'function') chart.update();
+        }, 120);
 
+        // cerrar al click en backdrop o ESC
+        backdrop.addEventListener('click', closeExpand);
+        document.addEventListener('keydown', escHandler);
+      }
 
+      function closeExpand(){
+        if (!expanded) return;
+        expanded = false;
 
+        if (backdrop){ backdrop.remove(); backdrop = null; }
+        if (closeBtn){ closeBtn.remove(); closeBtn = null; }
 
+        main.classList.remove('main-blurred');
+        card.classList.remove('expanded-burn');
+        canvas.style.height = '';
 
+        const chart = getChart();
+        setTimeout(() => {
+          if (chart && typeof chart.resize === 'function') chart.resize();
+          else if (chart && typeof chart.update === 'function') chart.update();
+        }, 80);
 
+        document.removeEventListener('keydown', escHandler);
+      }
 
+      function escHandler(e){
+        if (e.key === 'Escape') closeExpand();
+      }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          else if (chart && typeof chart.update === 'function'          if (chart && typeof chart.resize === 'function') chart.resize();        setTimeout(() => {        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;        canvas.style.height = '';        card.classList.remove('expanded-burn');        main.classList.remove('main-blurred');        if (closeBtn){ closeBtn.remove(); closeBtn = null; }        if (backdrop){ backdrop.remove(); backdrop = null; }        expanded = false;        if (!expanded) return;      function closeExpand(){      }        document.addEventListener('keydown', escHandler);        backdrop.addEventListener('click', closeExpand);        // cerrar al click en backdrop o ESC        }, 100);          else if (chart && typeof chart.update === 'function') chart.update();          if (chart && typeof chart.resize === 'function') chart.resize();        setTimeout(() => {        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;        // forzar redibujado del chart        canvas.style.height = 'calc(80vh - 120px)';        // ajustar canvas para ocupar más vertical        }
-
-        // forzar redimensionado del gráfico si existe
-        if (chart && typeof chart.resize === 'function') {
-          // dar un pequeño delay para que el DOM haya aplicado el fullscreen
-          setTimeout(() => chart.resize(), 50);
-        } else if (chart && typeof chart.update === 'function') {
-          setTimeout(() => chart.update(), 50);
-        }
+      btn.addEventListener('click', () => {
+        if (expanded) closeExpand(); else openExpand();
       });
     })();
   </script>

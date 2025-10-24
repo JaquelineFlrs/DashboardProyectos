@@ -119,16 +119,25 @@
       </div>
 
       <!-- Burndown ancho completo -->
-      <div class="card p-6">
+      <div id="card-burndown" class="card p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="font-semibold">Burndown</h3>
-          <button id="btn-burndown" class="icon-btn" title="Recalcular burndown" aria-label="Recalcular burndown">
-            <!-- reload icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-white/80">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M4.5 12a7.5 7.5 0 0112.69-5.303M19.5 12a7.5 7.5 0 01-12.69 5.303M3 3v6h6" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-2">
+            <button id="btn-burndown" class="icon-btn" title="Recalcular burndown" aria-label="Recalcular burndown">
+              <!-- reload icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-white/80">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M4.5 12a7.5 7.5 0 0112.69-5.303M19.5 12a7.5 7.5 0 01-12.69 5.303M3 3v6h6" />
+              </svg>
+            </button>
+
+            <!-- Botón nuevo: pantalla completa -->
+            <button id="btn-burndown-full" class="icon-btn" title="Ver Burndown en pantalla completa" aria-label="Pantalla completa">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="text-white/80">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 3H5a2 2 0 00-2 2v3m10 10h3a2 2 0 002-2v-3M8 21H5a2 2 0 01-2-2v-3m14-10h3a2 2 0 012 2v3" />
+              </svg>
+            </button>
+          </div>
         </div>
         <canvas id="chart-burn" class="mt-4" style="height:360px;max-height:360px"></canvas>
       </div>
@@ -273,5 +282,53 @@
   </main>
 
   <script src="assets/js/app.js"></script>
+
+  <!-- Script añadido: control de pantalla completa para el Burndown -->
+  <script>
+    (function(){
+      const btnFull = document.getElementById('btn-burndown-full');
+      const card = document.getElementById('card-burndown');
+      const canvas = document.getElementById('chart-burn');
+
+      if (!btnFull || !card || !canvas) return;
+
+      btnFull.addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await card.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (err) {
+          if (window.Swal) {
+            Swal.fire('Error', 'No se pudo cambiar a pantalla completa: ' + (err.message || err), 'error');
+          } else {
+            console.error('Error fullscreen:', err);
+          }
+        }
+      });
+
+      // Ajusta tamaño del canvas y fuerza redibujado del Chart.js al entrar/salir de fullscreen
+      document.addEventListener('fullscreenchange', () => {
+        // si usas Chart.js 3+ puedes obtener la instancia con Chart.getChart(canvasId)
+        const chart = window.Chart && typeof Chart.getChart === 'function' ? Chart.getChart('chart-burn') : null;
+
+        if (document.fullscreenElement) {
+          // reservar espacio vertical (resta header y controles)
+          canvas.style.height = 'calc(100vh - 120px)';
+        } else {
+          canvas.style.height = '';
+        }
+
+        // forzar redimensionado del gráfico si existe
+        if (chart && typeof chart.resize === 'function') {
+          // dar un pequeño delay para que el DOM haya aplicado el fullscreen
+          setTimeout(() => chart.resize(), 50);
+        } else if (chart && typeof chart.update === 'function') {
+          setTimeout(() => chart.update(), 50);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

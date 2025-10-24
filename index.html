@@ -168,50 +168,7 @@
     </section>
 
     <!-- ADMIN -->
-    <section id="panel-admin" class="hid    // ...existing code...
-        /* Reemplazo: blur aplicado al body excepto al elemento marcado como .burn-exempt */
-        /* quitamos .main-blurred para no afectar al propio card */
-        body.burn-open > *:not(.burn-exempt){
-          filter: blur(6px) brightness(.8);
-          pointer-events: none;
-          user-select: none;
-        }
-        /* elemento exento del blur (la card expandida) */
-        .burn-exempt{
-          pointer-events: auto;
-          user-select: auto;
-        }
-    
-        .card.expanded-burn{
-          position:fixed;
-          top:50%;
-          left:50%;
-          transform:translate(-50%,-50%);
-          width:90vw;
-          max-width:1400px;
-          height:80vh;
-          z-index:60;
-          border-radius:16px;
-          padding:20px;
-          overflow:auto;
-          box-shadow:0 20px 60px rgba(0,0,0,0.6);
-          transition:transform .18s ease, box-shadow .18s ease;
-        }
-        .burn-close{
-          position:absolute;
-          top:12px;
-          right:12px;
-          z-index:70;
-          width:40px;
-          height:40px;
-          display:grid;
-          place-items:center;
-          border-radius:10px;
-          border:1px solid rgba(255,255,255,.12);
-          background:rgba(255,255,255,.06);
-          cursor:pointer;
-        }
-    // ...existing code...den grid gap-6">
+    <section id="panel-admin" class="hidden grid gap-6">
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold">Administrador de subtareas</h3>
@@ -328,10 +285,53 @@
 
   <script src="assets/js/app.js"></script>
 
-  <!-- Overlay/blur para Burndown eliminado -->
+  <!-- Limpieza de residuos de overlay/blur -->
   <script>
-    // No hay comportamiento de overlay/fullscreen activo.
-    // El botón #btn-burndown-full queda inactivo hasta que decidas la nueva UX.
+    (function(){
+      function cleanupOverlay(){
+        // quitar clases globales usadas por overlay anterior
+        document.body.classList.remove('burn-open','main-blurred');
+
+        // eliminar backdrop si existe
+        const backdrop = document.getElementById('burn-backdrop');
+        if (backdrop) backdrop.remove();
+
+        // eliminar botones de cierre residuales
+        document.querySelectorAll('.burn-close').forEach(el => el.remove());
+
+        // quitar clases de exención/expansión en cards
+        document.querySelectorAll('.expanded-burn,.burn-exempt').forEach(el => {
+          el.classList.remove('expanded-burn','burn-exempt');
+
+          // restaurar estilos inline que pudieran haberse aplicado
+          const props = ['position','top','left','transform','width','maxWidth','height','zIndex','borderRadius','padding','overflow','boxShadow'];
+          props.forEach(p => el.style[p] = '');
+        });
+
+        // resetear canvas del burndown
+        const canvas = document.getElementById('chart-burn');
+        if (canvas) canvas.style.height = '';
+
+        // eliminar cualquier atributo data residual si aplica
+        document.querySelectorAll('[data-burn-residual]').forEach(el => el.removeAttribute('data-burn-residual'));
+
+        // eliminar listeners temporales creados por scripts antiguos (si existen)
+        try {
+          document.removeEventListener('keydown', window.__burnEscHandler);
+          window.__burnEscHandler = null;
+        } catch(e){}
+      }
+
+      // Ejecutar al cargar y exponer función para uso manual desde consola
+      document.addEventListener('DOMContentLoaded', cleanupOverlay);
+      window.__cleanupBurnOverlay = cleanupOverlay;
+
+      // Por si algún viejo script guardó el handler en window, eliminarlo también
+      if (window.__burnEscHandler && typeof window.__burnEscHandler === 'function') {
+        document.removeEventListener('keydown', window.__burnEscHandler);
+        window.__burnEscHandler = null;
+      }
+    })();
   </script>
 </body>
 </html>

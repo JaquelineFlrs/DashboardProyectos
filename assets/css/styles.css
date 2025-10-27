@@ -1,0 +1,115 @@
+
+:root{ --indigo:#4f46e5; --slate:#334155; --muted:#64748b; --ring:#e5e7eb; --bg:#f7f8fb; }
+html,body{height:100%}
+body{background:var(--bg); color:#0f172a; font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;}
+/* Helpers */
+.card{background:#fff; border:1px solid #eef0f3; border-radius:18px; padding:16px; box-shadow:0 1px 2px rgba(16,24,40,.04);}
+.card-lg{padding:22px; border-radius:20px}
+.stat{display:flex; flex-direction:column; gap:4px}
+.stat .k{font-size:28px; font-weight:700}
+.stat .l{font-size:12px; color:#64748b}
+.btn{border-radius:999px; padding:10px 16px; font-weight:600; border:1px solid #e5e7eb; background:#fff;}
+.btn:hover{background:#f3f4f6}
+.btn-primary{background:var(--indigo); border-color:var(--indigo); color:#fff}
+.btn-primary:hover{filter:brightness(0.95)}
+.input, .select, .file-input{
+  border:1px solid #e5e7eb; border-radius:999px; padding:10px 14px; outline:none; background:#fff;
+}
+.input:focus, .select:focus{ box-shadow:0 0 0 4px rgba(79,70,229,.15); border-color:var(--indigo); }
+.table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
+.table thead th{ text-align:left; padding:10px 12px; color:#475569; background:#f8fafc; }
+.table tbody td{ padding:12px; border-top:1px solid #f1f5f9; }
+.badge{font-size:12px; border-radius:999px; padding:4px 10px; border:1px solid #e5e7eb; background:#fff;}
+.sidebar{width:240px; background:#fff; border-right:1px solid #eef0f3; position:sticky; top:0; height:100vh;}
+.nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#0f172a;}
+.nav-item:hover{background:#f3f4f6}
+.nav-item.active{background:#eef2ff; color:var(--indigo); font-weight:600}
+.topbar{position:sticky; top:0; z-index:30; background:#fff; border-bottom:1px solid #eef0f3;}
+.grid{display:grid; gap:16px}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width: 960px){
+  .sidebar{position:relative; height:auto; width:100%}
+  .grid-3{grid-template-columns:1fr}
+  .grid-2{grid-template-columns:1fr}
+}
+.hidden{display:none}
+
+/* --- DataTable-like controls --- */
+.dt-toolbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+.dt-pagesize{display:flex; align-items:center; gap:6px; font-size:13px; color:#475569}
+.dt-pagination{display:flex; align-items:center; gap:6px; justify-content:flex-end; flex-wrap:wrap}
+.dt-btn{border:1px solid #e5e7eb; border-radius:8px; padding:6px 10px; background:#fff; font-weight:600; font-size:13px}
+.dt-btn:hover{background:#f3f4f6}
+.dt-btn[disabled]{opacity:.5; cursor:not-allowed}
+.dt-page{border:1px solid #e5e7eb; border-radius:8px; padding:6px 10px; background:#fff; font-weight:600; font-size:13px}
+.dt-page.active{background:#eef2ff; border-color:#c7d2fe; color:#3730a3}
+.dt-info{font-size:13px; color:#64748b}
+.table thead th.sortable{cursor:pointer; user-select:none}
+.table thead th.sortable:after{content:" \25B4\25BE"; color:#cbd5e1; font-size:11px; margin-left:6px}
+.table thead th.sorted-asc:after{content:" \25B4"; color:#475569}
+.table thead th.sorted-desc:after{content:" \25BE"; color:#475569}
+.badge{font-size:12px;border-radius:999px;padding:4px 10px;border:1px solid #e5e7eb;background:#fff}
+.badge.soft-red{background:#fee2e2;border-color:#fecaca;color:#7f1d1d}
+.badge.soft-yellow{background:#fef3c7;border-color:#fde68a;color:#78350f}
+.badge.soft-blue{background:#dbeafe;border-color:#bfdbfe;color:#1e3a8a}
+.badge.soft-gray{background:#e5e7eb;border-color:#d1d5db;color:#374151}
+
+
+
+/* === KPI Cards estilo TailAdmin === */
+.grid-4 { display:grid; gap:16px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+@media (max-width:1200px){ .grid-4{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:640px){ .grid-4{ grid-template-columns:1fr; } }
+
+.kpi-card{ background:#fff; border:1px solid #eef0f3; border-radius:18px; padding:18px 20px;
+  box-shadow:0 4px 20px rgba(15,23,42,.04); position:relative; overflow:hidden; }
+.kpi{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+
+.kpi .icon{ width:44px; height:44px; display:grid; place-items:center; border-radius:12px;
+  background:#f1f5ff; color:#1e40af; border:1px solid #e5e7eb; }
+.kpi .meta{ display:flex; flex-direction:column; gap:6px; }
+.kpi .meta .label{ font-size:13px; color:#64748b; }
+.kpi .meta .value{ font-size:30px; font-weight:800; letter-spacing:-0.02em; color:#0f172a; }
+
+.kpi .delta{ margin-left:auto; }
+.kpi .delta .badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; 
+  font-weight:700; font-size:12px; border:0; }
+.kpi .delta.up    .badge{ background:#dcfce7; color:#166534; }
+.kpi .delta.down  .badge{ background:#fee2e2; color:#991b1b; }
+.kpi .delta.flat  .badge{ background:#e5e7eb; color:#374151; }
+
+.kpi .subtxt{ margin-top:6px; font-size:12px; color:#94a3b8; }
+
+.kpi-card .shine{ position:absolute; inset:auto -40% -60% auto; width:240px; height:240px; 
+  background:radial-gradient(ellipse at center, rgba(99,102,241,.12), rgba(99,102,241,0) 60%);
+  transform:rotate(-12deg);
+}
+.section-title{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.section-title i{color:#4f46e5}
+
+
+/* Normaliza inputs SOLO dentro del modal */
+#modal-desc select,
+#modal-desc textarea,
+#modal-desc input[type="text"],
+#modal-desc input[type="number"],
+#modal-desc input[type="date"] {
+  border-radius: 0.5rem !important;       /* rounded-lg */
+  border: 1px solid rgb(203 213 225) !important; /* slate-300 */
+  background: #fff !important;
+  padding: 0.5rem 0.75rem !important;      /* py-2 px-3 */
+  box-shadow: 0 1px 1px rgba(0,0,0,.04) !important;
+}
+
+/* Focus consistente */
+#modal-desc select:focus,
+#modal-desc textarea:focus,
+#modal-desc input:focus {
+  outline: none !important;
+  border-color: rgb(99 102 241) !important;       /* indigo-500 */
+  box-shadow: 0 0 0 2px rgba(99,102,241,.25) !important; /* ring-2 */
+}
+
+/* El label+select alineado, sin pastillas */
+#modal-desc label { margin: 0; }

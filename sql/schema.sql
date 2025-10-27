@@ -1,0 +1,2 @@
+-- (igual al proporcionado previamente) 
+-- Ejecuta tu schema original y funciones/vistas sugeridas.

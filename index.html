@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GM Transport · Sprints</title>
+
+  <!-- Tailwind (utility classes) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- jQuery (una sola vez) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- PapaParse (CSV) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Chart.js (para burndown) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="max-w-8xl mx-auto flex gap-6 px-4 py-6 mx-auto flex gap-6 px-4 py-6 mx-auto px-4 py-3 flex items-center gap-3">
+      
+      <div class="flex items-center gap-2 font-semibold">
+        <i class="fa-solid fa-chart-line text-indigo-600"></i>
+        <span>Dashboard</span>
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <div id="auth-status" class="text-sm text-slate-600"></div>
+        <button id="btn-logout" class="btn hidden"><i class="fa-solid fa-right-from-bracket mr-1"></i>Salir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-8xl mx-auto flex gap-6 px-4 py-6">
+    <!-- Sidebar -->
+    <aside class="sidebar rounded-2xl p-3 hidden md:block">
+      <nav class="flex flex-col gap-1">
+        <a class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+        <a class="nav-item" data-tab="registro"><i class="fa-solid fa-circle-plus"></i> Registro</a>
+        <a class="nav-item" data-tab="admin"><i class="fa-solid fa-list-check"></i> Administración</a>
+        <a class="nav-item" data-tab="cargas"><i class="fa-solid fa-cloud-arrow-up"></i> Cargas diarias</a>
+     <a class="nav-item" data-tab="historias"><i class="fa-solid fa-book-open"></i> Historias</a>
+<a class="nav-item" data-tab="matriz"><i class="fa-solid fa-layer-group"></i> Matriz</a>
+
+      </nav>
+
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1">
+      <!-- DASHBOARD -->
+     <section id="view-dashboard" class="space-y-4">
+      <!-- Sprint activo (card superior) -->
+<div id="sprint-info-card" class="bg-white rounded-2xl shadow p-4">
+  <div class="flex items-start justify-between gap-3 flex-wrap">
+    <div>
+      <div class="text-xs uppercase tracking-wide text-slate-500">Sprint activo</div>
+      <div class="mt-1 flex items-center gap-2 flex-wrap">
+        <span id="sc-name" class="px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 font-semibold">—</span>
+        <span id="sc-dates" class="text-slate-600 text-sm">—</span>
+        <span id="sc-left" class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs hidden">—</span>
+      </div>
+    </div>
+    <div class="text-right">
+      <div class="text-xs uppercase tracking-wide text-slate-500">ID</div>
+      <div id="sc-id" class="font-medium">—</div>
+    </div>
+  </div>
+</div>
+
+  <!-- KPIs -->
+<div class="grid-4">
+  <!-- Total horas -->
+  <div class="kpi-card">
+    <div class="shine"></div>
+    <div class="kpi">
+      <div class="icon"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="meta">
+        <div class="label">Total horas</div>
+        <div class="value" id="k-horas-tot">0</div>
+        <div class="subtxt">Horas planeadas del sprint</div>
+      </div>
+      <div class="delta" id="k-tot-delta"><span class="badge">—</span></div>
+    </div>
+  </div>
+
+  <!-- Horas terminadas -->
+  <div class="kpi-card">
+    <div class="shine"></div>
+    <div class="kpi">
+      <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+      <div class="meta">
+        <div class="label">Horas terminadas</div>
+        <div class="value" id="k-horas-done">0</div>
+        <div class="subtxt">termindas hasta hoy</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Horas pendientes -->
+  <div class="kpi-card">
+    <div class="shine"></div>
+    <div class="kpi">
+      <div class="icon"><i class="fa-solid fa-hourglass-half"></i></div>
+      <div class="meta">
+        <div class="label">Horas pendientes</div>
+        <div class="value" id="k-horas-pend">0</div>
+        <div class="subtxt">Por completar</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- % Avance -->
+  <div class="kpi-card">
+    <div class="shine"></div>
+    <div class="kpi">
+      <div class="icon"><i class="fa-solid fa-gauge-high"></i></div>
+      <div class="meta">
+        <div class="label">% Avance</div>
+        <div class="value" id="k-avance">0%</div>
+        <div class="subtxt">Avance del sprint</div>
+      </div>
+     
+    </div>
+  </div>
+</div>
+
+
+  <!-- Burndown: botones + gráfica + tabla -->
+ <!-- Gráficas: Burndown (8) + Terminadas por día (4) -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+  <!-- BURNDOWN: col-span-8 -->
+  <div class="bg-white rounded-2xl shadow p-4 md:col-span-7">
+    <div class="flex items-center gap-2 mb-3">
+      <h3 class="font-semibold flex items-center" id="bd-title">
+  <i class="fa-solid fa-chart-line text-indigo-600 mr-2"></i>
+  <span id="bd-title-text">Burndown</span>
+</h3>
+
+      <div class="ml-auto flex items-center gap-2">
+        <button id="btn-estimado" class="">
+          <i class="fa-solid fa-calculator mr-1"></i>
+        </button>
+        <button id="btn-real-hoy" class="">
+          <i class="fa-solid fa-plus mr-1"></i>
+        </button>
+      </div>
+    </div>
+    <div class="h-[300px]">
+      <canvas id="burndownChart"></canvas>
+    </div>
+    
+  </div>
+
+  <!-- HORAS TERMINADAS POR DÍA: col-span-4 -->
+  <div class="bg-white rounded-2xl shadow p-4 md:col-span-5">
+    <div class="flex items-center gap-2 mb-3">
+      <h3 class="font-semibold flex items-center">
+        <i class="fa-solid fa-clock-rotate-left text-indigo-600 mr-2"></i>
+        Horas terminadas por día
+      </h3>
+    </div>
+    <div class="h-[300px]">
+      <canvas id="chartHorasDia"></canvas>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Avance por proyecto -->
+  <div class="card card-lg">
+    <h3 class="font-semibold mb-3"><i class="fa-solid fa-diagram-project text-indigo-600 mr-2"></i>Avance por proyecto</h3>
+    <div class="overflow-auto">
+      <table class="table">
+        <thead><tr><th class="th">Proyecto</th><th class="th">Horas totales</th><th class="th">Horas terminadas</th><th class="th">Horas pendientes</th> <th class="th">% Avance</th> </tr></thead>
+        <tbody id="tbody-proyecto"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Riesgo por propietario -->
+  <div class="card card-lg">
+    <h3 class="font-semibold mb-3"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i>Riesgo por propietario</h3>
+    <div class="overflow-auto">
+      <table class="table">
+        <thead><tr><th class="th">Propietario</th><th class="th">Horas pendientes</th><th class="th">Días restantes</th><th class="th">Capacidad restante (7h/día)</th><th class="th">Riesgo</th></tr></thead>
+        <tbody id="tbody-riesgo"></tbody>
+      </table>
+    </div>
+  </div>
+
+
+   <div class="card card-lg">
+    <h3 class="font-semibold mb-3"><i class="fa-solid fa-user-shield text-indigo-600 mr-2"></i>Riesgo por propietario</h3>
+   <div class="overflow-auto mt-4">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="th">Sprint</th>
+            <th class="th">Día</th>
+            <th class="th">Fecha</th>
+            <th class="th">Estimado</th>
+            <th class="th">Real</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-burndown"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+
+
+      <!-- REGISTRO -->
+    <section id="view-registro" class=" card card-lg hidden space-y-3">
+  <div class="section-title">
+    <i class="fa-solid fa-circle-plus"></i>
+    <h2 class="text-xl font-semibold">Registro</h2>
+  </div>
+
+  <div class="card-lg space-y-6">
+    <div>
+      <h3 class="font-semibold mb-4"><i class="fa-solid fa-rectangle-list text-indigo-600 mr-2"></i>Creación de sprint</h3>
+      <form id="form-sprint" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <input required name="nombre" class="input" placeholder="Nombre del sprint">
+        <input required type="date" name="inicio" class="input">
+        <input required type="date" name="fin" class="input">
+        <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk mr-2"></i>Crear</button>
+      </form>
+      <div class="grid grid-2 mt-5">
+        <div><div class="mb-2 font-medium">Historias (CSV)</div><input id="csv-historias" type="file" accept=".csv" class="file-input"></div>
+        <div><div class="mb-2 font-medium">Subtareas (CSV)</div><input id="csv-subtareas" type="file" accept=".csv" class="file-input"></div>
+      </div>
+      <div class="mt-4"><button id="btn-cargar-inicial" class="btn"><i class="fa-solid fa-upload mr-2"></i>Cargar archivos al sprint</button></div>
+    </div>
+
+    <hr class="border-slate-100">
+
+    <div>
+      <div class="flex items-center mb-3">
+        <h3 class="font-semibold"><i class="fa-solid fa-rectangle-list text-indigo-600 mr-2"></i>Sprints</h3>
+        <div class="ml-auto text-sm text-slate-500">Selecciona el activo</div>
+      </div>
+      <div id="lista-sprints" class="flex flex-col gap-2"></div>
+    </div>
+  </div>
+</section>
+
+
+      <!-- ADMIN -->
+     <section id="view-admin" class="card card-lg hidden space-y-3">
+  <div class="section-title">
+    <i class="fa-solid fa-list-check"></i>
+    <h2 class="text-xl font-semibold">Administración</h2>
+  </div>
+
+  <div class="card-lg">
+    <div class="flex items-center gap-2 mb-3">
+    
+      <select id="f-prop" class="select"><option value="">Todos (propietario)</option></select>
+      <select id="f-term" class="select">
+        <option value="">Todos (terminado)</option>
+        <option value="true">Terminados</option>
+        <option value="false">Pendientes</option>
+      </select>
+      <select id="f-mostrar" class="select">
+        <option value="">Todos (mostrar)</option>
+        <option value="true">Mostrar</option>
+        <option value="false">Ocultos</option>
+      </select>
+      <input id="f-q" class="input" placeholder="Buscar...">
+      <button id="btn-recargar-admin" class="btn"><i class="fa-solid fa-rotate mr-1"></i>Recargar</button>
+    </div>
+
+    <div class="dt-toolbar">
+      <div class="dt-pagesize">Mostrar
+        <select id="dt-size" class="select"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+        registros
+      </div>
+      <div class="ml-auto dt-info" id="dt-info"></div>
+    </div>
+
+    <div class="overflow-auto">
+      <table class="table">
+        <thead><tr>
+          <th class="th sortable" data-key="historia">Historia</th>
+          <th class="th sortable" data-key="subtarea">Subtarea</th>
+          <th class="th sortable" data-key="propietario">Propietario</th>
+          <th class="th sortable" data-key="duracion_horas">Duración</th>
+          <th class="th sortable" data-key="estado">Estado</th>
+          <th class="th sortable" data-key="fecha_terminacion">Fecha terminación</th>
+          <th class="th" data-key="terminado">Terminado</th>
+          <th class="th" data-key="mostrar">Mostrar</th>
+        </tr></thead>
+        <tbody id="tbody-admin"></tbody>
+      </table>
+    </div>
+    <div class="dt-pagination" id="dt-pag"></div>
+  </div>
+</section>
+
+
+      <!-- CARGAS -->
+
+<section id="view-cargas" class="card card-lg hidden space-y-3">
+  <div class="section-title">
+    <i class="fa-solid fa-cloud-arrow-up"></i>
+    <h2 class="text-xl font-semibold">Cargas diarias</h2>
+  </div>
+
+  <div class="card-lg space-y-4">
+    <!-- Subtareas primero -->
+    <div>
+      <div class="mb-2 font-medium">Subtareas (CSV)</div>
+      <input id="csv-subtareas-diario" type="file" accept=".csv" class="file-input w-full">
+    </div>
+
+    <!-- Historias después -->
+    <div>
+      <div class="mb-2 font-medium">Historias (CSV)</div>
+      <input id="csv-historias-diario" type="file" accept=".csv" class="file-input w-full">
+    </div>
+
+    <div class="pt-2">
+      <button id="btn-cargar-diario" class="btn">
+        <i class="fa-solid fa-file-import mr-2"></i>Procesar
+      </button>
+    </div>
+  </div>
+</section>
+
+
+  <!-- PRIORIDADES -->
+      <section id="view-prioridades" class="hidden space-y-4">
+  <div class="card-lg">
+    <div class="flex items-center gap-2 mb-3">
+      <h3 class="font-semibold"><i class="fa-solid fa-layer-group text-indigo-600 mr-2"></i>Prioridades por propietario</h3>
+      <select id="fp-owner" class="select"><option value="">Selecciona propietario</option></select>
+      <button id="btn-p-sync" class="btn"><i class="fa-solid fa-arrows-rotate mr-1"></i>Sincronizar</button>
+      <button id="btn-p-auto" class="btn"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Autonumerar</button>
+      <button id="btn-p-save" class="btn btn-primary"><i class="fa-solid fa-floppy-disk mr-1"></i>Guardar orden</button>
+    </div>
+
+    <div class="overflow-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="th">#</th>
+            <th class="th">Historia</th>
+            <th class="th">Proyecto</th>
+            <th class="th">Horas pend.</th>
+            <th class="th">Mover</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-prioridades"></tbody>
+      </table>
+    </div>
+    <div class="text-sm text-slate-500 mt-2">Tip: arrastra filas o usa ↑/↓ para ajustar la prioridad.</div>
+  </div>
+</section>
+
+
+  <!-- HISTORIAS -->
+<section id="view-historias" class="card card-lg hidden space-y-3">
+  <div class="section-title">
+    <i class="fa-solid fa-book-open"></i>
+    <h2 class="text-xl font-semibold">Historias</h2>
+  </div>
+
+  <div class="card-lg">
+   <div class="flex items-center gap-2 mb-3">
+  <select id="fh-proyecto" class="select"><option value="">Todos (proyecto)</option></select>
+  <select id="fh-estado" class="select"><option value="">Todos (estado)</option></select>
+  <input id="fh-q" class="input" placeholder="Buscar..." />
+  <div class="ml-auto flex items-center gap-2 text-sm text-slate-600">
+    <span id="h-info"></span>
+    <label>Mostrar
+      <select id="h-size" class="select"><option>10</option><option>25</option><option>50</option></select>
+    </label>
+    <button id="btn-h-export" class="btn"><i class="fa-solid fa-file-export mr-1"></i>Exportar</button>
+  </div>
+</div>
+
+    <div class="overflow-auto">
+      <table class="table">
+   <thead>
+  <tr>
+    <th class="th w-14 text-center sortable" data-key="id_historia">ID</th>
+    <th class="th sortable" data-key="nombre_tarea">Historia</th>
+    <th class="th sortable" data-key="nombre_lista_tareas">Proyecto</th>
+    <th class="th sortable" data-key="estado_historia">Estado</th>
+    <th class="th sortable" data-key="subtareas_total">Subtareas</th>
+    <th class="th">% Avance</th>
+    <th class="th">Review</th>
+    <th class="th">Observaciones</th>
+    <th class="th">Descripción</th>
+  </tr>
+</thead>
+
+
+        <tbody id="tbody-historias"></tbody>
+      </table>
+    </div>
+    <div class="dt-pagination" id="h-pag"></div>
+  </div>
+</section>
+
+
+<div id="modal-desc" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-5">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold">
+        <i class="fa-solid fa-circle-info text-indigo-600 mr-2"></i>
+        Descripción de la historia
+      </h3>
+      <button class="btn btn-sm" id="md-close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Meta + descripción -->
+    <div class="text-sm text-slate-600 mb-3" id="md-historia"></div>
+    <div class="border rounded-lg p-3 max-h-[50vh] overflow-auto" id="md-descripcion"></div>
+
+    <!-- Form (review + observaciones) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 items-start">
+      <div>
+        <label for="md-review" class="block text-sm font-medium text-slate-700 mb-1">Review</label>
+        <select id="md-review"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
+                       focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="">—</option>
+          <option value="ACEPTADA">Aceptada</option>
+          <option value="RECHAZADA">Rechazada</option>
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label for="md-obs" class="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
+        <textarea id="md-obs"
+                  class="w-full min-h-[112px] rounded-lg border border-slate-300 px-3 py-2 text-sm resize-y
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Escribe observaciones..."></textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center gap-3 mt-4">
+      <button id="md-save" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk mr-1"></i>Guardar
+      </button>
+      <span id="md-save-ok" class="text-green-600 hidden">
+        <i class="fa-solid fa-check"></i> Guardado
+      </span>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<section id="view-matriz" class=" card card-lg hidden p-4 space-y-4">
+  <div class="flex items-center gap-2">
+    <h2 class="text-xl font-semibold"><i class="fa-solid fa-grid mr-2"></i>Matriz de Prioridades</h2>
+    <select id="mx-owner" class="select">
+      <option value="">Todos (propietario)</option>
+    </select>
+  </div>
+
+  <div class="grid grid-cols-2 grid-rows-2 gap-4 h-[75vh]">
+    <div id="q1" class="quadrant bg-red-50 border border-red-200 rounded-xl p-3 flex flex-col">
+      <h3 class="font-semibold text-red-600 flex items-center justify-between">
+        Urgente / Importante
+        <span id="q1-meta" class="badge"></span>
+      </h3>
+      <div class="dropzone flex-1 overflow-auto min-h-[160px]"></div>
+    </div>
+
+    <div id="q2" class="quadrant bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex flex-col">
+      <h3 class="font-semibold text-yellow-600 flex items-center justify-between">
+        No urgente / Importante
+        <span id="q2-meta" class="badge"></span>
+      </h3>
+      <div class="dropzone flex-1 overflow-auto min-h-[160px]"></div>
+    </div>
+
+    <div id="q3" class="quadrant bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col">
+      <h3 class="font-semibold text-blue-600 flex items-center justify-between">
+        Urgente / No importante
+        <span id="q3-meta" class="badge"></span>
+      </h3>
+      <div class="dropzone flex-1 overflow-auto min-h-[160px]"></div>
+    </div>
+
+    <div id="q4" class="quadrant bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col">
+      <h3 class="font-semibold text-gray-600 flex items-center justify-between">
+        No urgente / No importante
+        <span id="q4-meta" class="badge"></span>
+      </h3>
+      <div class="dropzone flex-1 overflow-auto min-h-[160px]"></div>
+    </div>
+  </div>
+</section>
+
+
+
+    </main>
+  </div>
+
+  <!-- Config -->
+<script>
+    window.APP_CONFIG = {
+      SUPABASE_URL: "https://ktwawmmpxeuihjwvcobv.supabase.co",
+      SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0d2F3bW1weGV1aWhqd3Zjb2J2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNjQxMzksImV4cCI6MjA3Njk0MDEzOX0.xikrbX0yS3eKrLa5e5Xk-Zkpob_rbTK8h1A1svMS_7A",
+      // Sprint activo se guarda en localStorage para facilidad
+    };
+  </script>
+
+
+<!-- CDNs (una sola vez, y con defer) -->
+<script defer src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Tu config y módulos (este orden importa) -->
+<script defer src="js/supabaseClient.js"></script>
+<script defer src="js/api.js"></script>
+
+<script defer src="js/csv.js"></script>
+<script defer src="js/ui.dashboard.js"></script>
+<script defer src="js/ui.registro.js"></script>
+<script defer src="js/ui.admin.js"></script>
+<script defer src="js/ui.cargas.js"></script>
+<script defer src="js/ui.historias.js"></script>
+<script defer src="js/ui.prioridades.js"></script>
+<script defer src="js/ui.matriz.js"></script>
+
+<script defer src="js/main.js"></script>
+
+
+
+
+
+
+  <script>
+    // Sidebar link handling + badge sprint
+    $(document).on('click', '.nav-item', function(){
+      $('.nav-item').removeClass('active'); $(this).addClass('active');
+      const tab = $(this).data('tab');
+      $('main > section').addClass('hidden');
+      $('#view-'+tab).removeClass('hidden');
+      if(tab==='dashboard') uiDashboard.render();
+      if(tab==='registro') uiRegistro.renderSprints();
+      if(tab==='admin') uiAdmin.cargar();
+       if(tab==='prioridades') uiPrioridades.init();
+     if(tab==='historias') uiHistorias.init();
+
+
+if(tab==='matriz') uiMatriz.init();
+
+
+    });
+  </script>
+</body>
+</html>
